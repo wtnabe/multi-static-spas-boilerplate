@@ -38,7 +38,7 @@ function sites () {
     path.join(root, 'sites/index.html'),
     ...globSync(`${root}/sites/*/index.html`)
   ].filter((e) => {
-    return !e.includes(outDir)
+    return !e.includes(`/${outDir}/`)
   }).map((e) => {
     const dir = path.dirname(e)
 
