@@ -1,0 +1,6 @@
+*~
+*.bak
+/node_modules/*
+vite.config.js
+/dist/*
+

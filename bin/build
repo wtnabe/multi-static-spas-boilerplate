@@ -1,0 +1,105 @@
+#! /usr/bin/env node
+
+import { globSync } from 'glob'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+import { writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import fs from 'fs-extra'
+import Handlebars from 'handlebars'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const root = path.dirname(__dirname)
+const outDir = 'dist'
+const handlebars = Handlebars.compile(fs.readFileSync(path.join(root, 'vite.config.handlebars'), { encoding: 'utf-8' }))
+
+/**
+ * @returns {void}
+ */
+function main ({ stopClean } =  { stopClean: false }) {
+  buildSites()
+  gatherSites(stopClean)
+}
+
+/**
+ * /sites 以下の HTML を列挙し、site 情報として返す
+ *
+ * outDir を含まないように
+ *
+ * @typedef {Object} Site
+ * @property {string} path
+ * @property {string} name
+ * @returns {Site[]}
+ */
+function sites () {
+  return [
+    path.join(root, 'sites/index.html'),
+    ...globSync(`${root}/sites/*/index.html`)
+  ].filter((e) => {
+    return !e.includes(outDir)
+  }).map((e) => {
+    const dir = path.dirname(e)
+
+    return {
+      path: dir,
+      name: dir.replace(`${root}/sites`, '').substring(1)
+    }
+  })
+}
+
+/**
+ * 各siteの成果物を一箇所に集める
+ *
+ * @param {boolean} autoClean
+ * @returns {void}
+ */
+function gatherSites (stopClean = false) {
+  const dist = `${root}/${outDir}`
+
+  sites().forEach((site) => {
+    fs.copySync(path.join(site.path, outDir), path.join(dist, site.name))
+    if (!stopClean) {
+      fs.removeSync(path.join(site.path, outDir))
+    }
+  })
+}
+
+/**
+ * @returns {void}
+ */
+function buildSites () {
+  sites().map((site) => {
+    prepare(site)
+    build(site)
+  })
+}
+
+/**
+ * それぞれのサイトをビルドする
+ *
+ * @param {object} site
+ * @returns {void}
+ */
+function build (site) {
+  console.log(site.name || 'index')
+  spawnSync('yarn', ['-s', 'run', 'vite', 'build'], { cwd: site.path })
+  console.log('  done')
+}
+
+/**
+ * それぞれのサイト用のビルドの準備をする
+ *
+ * 今のところ vite.config.js に base を設定するだけ
+ *
+ * @param {object} site
+ * @returns {void}
+ */
+function prepare (site) {
+  writeFileSync(
+    path.join(site.path, 'vite.config.js'),
+    handlebars({ url: site.name }))
+}
+
+main()

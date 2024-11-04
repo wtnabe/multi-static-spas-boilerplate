@@ -1,0 +1,25 @@
+{
+  "name": "multi-static-spas-boilerplate",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">= 20"
+  },
+  "workspaces": [
+    "sites",
+    "sites/*"
+  ],
+  "scripts": {
+    "build": "./bin/build"
+  },
+  "author": "wtnabe",
+  "license": "BSD-2-CLAUSE",
+  "description": "",
+  "devDependencies": {
+    "fs-extra": "^11.2.0",
+    "glob": "^11.0.0",
+    "handlebars": "^4.7.8",
+    "vite": "^5.4.10"
+  }
+}
