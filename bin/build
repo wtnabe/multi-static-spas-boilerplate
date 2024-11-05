@@ -3,7 +3,7 @@
 import { globSync } from 'glob'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { writeFileSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import fs from 'fs-extra'
 import Handlebars from 'handlebars'
@@ -24,13 +24,16 @@ function main ({ stopClean } =  { stopClean: false }) {
 }
 
 /**
+ * @typedef {Object} Site
+ * @property {string} path
+ * @property {string} name
+ */
+
+/**
  * /sites 以下の HTML を列挙し、site 情報として返す
  *
  * outDir を含まないように
  *
- * @typedef {Object} Site
- * @property {string} path
- * @property {string} name
  * @returns {Site[]}
  */
 function sites () {
@@ -71,6 +74,7 @@ function gatherSites (stopClean = false) {
  */
 function buildSites () {
   sites().map((site) => {
+    console.log(site.name || 'index')
     prepare(site)
     build(site)
   })
@@ -79,11 +83,10 @@ function buildSites () {
 /**
  * それぞれのサイトをビルドする
  *
- * @param {object} site
+ * @param {Site} site
  * @returns {void}
  */
 function build (site) {
-  console.log(site.name || 'index')
   spawnSync('yarn', ['-s', 'run', 'vite', 'build'], { cwd: site.path })
   console.log('  done')
 }
@@ -93,13 +96,28 @@ function build (site) {
  *
  * 今のところ vite.config.js に base を設定するだけ
  *
- * @param {object} site
+ * @param {Site} site
  * @returns {void}
  */
 function prepare (site) {
-  writeFileSync(
-    path.join(site.path, 'vite.config.js'),
-    handlebars({ url: site.name }))
+ if (!viteConfigExists(site)) {
+   writeFileSync(
+     targetViteConfigPath,
+     handlebars({ url: site.name }))
+  }
+  console.log('  vite.config.js geneterated')
+}
+
+/**
+ * @param {Site} site
+ * @returns {boolean}
+ */
+function viteConfigExists (site) {
+  return ['ts', 'js'].map((ext) => {
+    return path.join(site.path, `vite.config.${ext}`)
+  }).filter((e) => {
+    return existsSync(e)
+  }).length > 0
 }
 
 main()

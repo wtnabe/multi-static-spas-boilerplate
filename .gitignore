@@ -2,5 +2,4 @@
 *.bak
 /node_modules/*
 **/node_modules/*
-vite.config.js
 /dist/*
